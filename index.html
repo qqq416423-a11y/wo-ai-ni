@@ -9,25 +9,69 @@
 
   :root {
     --bg: #0b1026;
-    --ink: #f4f6ff;
+    --ink: #f4f2ea;
     --accent: #8fb4ff;
+    --kai: "Kaiti SC", "STKaiti", KaiTi, "STSong", "SimSun", "Noto Serif SC", serif;
   }
 
   html, body { height: 100%; }
 
   body {
-    font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    font-family: var(--kai);
     background: var(--bg);
     color: var(--ink);
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* 层层递进：背景随层级由深夜蓝一路烧到滚烫红 */
   #stage {
     position: relative;
     height: 100%;
-    transition: background 1.2s ease;
+    overflow: hidden;
+    background: var(--bg);
+    transition: background 1.4s ease;
+  }
+
+  /* ── 背景：光斑 bokeh（颜色跟随 accent 平滑过渡）── */
+  .bokeh {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, currentColor 0%, transparent 68%);
+    filter: blur(26px);
+    opacity: .16;
+    color: var(--accent);
+    transition: color 1.4s ease;
+    animation: drift 22s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes drift {
+    from { transform: translate(0, 0); }
+    to   { transform: translate(4vmin, -5vmin); }
+  }
+
+  /* ── 背景星尘 ── */
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: twinkle 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .star.gold { background: #ffd27a; }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: .08; }
+    50%      { opacity: .85; }
+  }
+
+  /* 暗角，压出夜色纵深 */
+  #vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 42%, transparent 52%, rgba(0, 0, 0, .5) 100%);
+    pointer-events: none;
   }
 
   .layer {
@@ -37,13 +81,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
+    gap: 16px;
     padding: 32px 24px 96px;
     text-align: center;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(28px) scale(0.96);
+    transform: translateY(24px) scale(.97);
     transition: opacity .7s ease, transform .7s ease, visibility .7s;
+    z-index: 2;
   }
 
   .layer.active {
@@ -54,71 +99,108 @@
 
   .layer.leaving {
     opacity: 0;
-    transform: translateY(-28px) scale(1.04);
+    transform: translateY(-24px) scale(1.03);
   }
 
+  /* 层号：左上角竖排小字 */
   .stage-no {
-    font-size: 13px;
-    letter-spacing: .5em;
-    text-indent: .5em;
-    opacity: .55;
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top));
+    left: 18px;
+    writing-mode: vertical-rl;
+    font-size: 12px;
+    letter-spacing: .4em;
+    opacity: .45;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  /* 背景大字水印 */
+  .wm {
+    position: absolute;
+    right: -6vw;
+    bottom: -9vh;
+    font-size: 40vw;
+    line-height: 1;
+    color: var(--ink);
+    opacity: .05;
+    transform: rotate(-7deg);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
   }
 
   .emoji {
-    font-size: clamp(64px, 16vw, 120px);
+    font-size: clamp(60px, 15vw, 112px);
     line-height: 1;
-    filter: drop-shadow(0 12px 30px rgba(0,0,0,.45));
-    animation: bob 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 14px 34px rgba(0, 0, 0, .5));
+    animation: bob 3.6s ease-in-out infinite;
   }
 
   @keyframes bob {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    50%      { transform: translateY(-14px) rotate(2deg); }
+    0%, 100% { transform: translateY(0) rotate(-2.5deg); }
+    50%      { transform: translateY(-13px) rotate(2deg); }
   }
 
   h1 {
-    font-size: clamp(42px, 10vw, 92px);
-    font-weight: 800;
-    letter-spacing: .08em;
-    line-height: 1.15;
+    font-size: clamp(46px, 11.5vw, 104px);
+    font-weight: 700;
+    letter-spacing: .1em;
+    line-height: 1.2;
   }
 
-  h1 em {
-    font-style: normal;
+  /* 逐字浮现 */
+  h1 .ch {
+    display: inline-block;
+    opacity: 0;
+    animation: charIn .62s cubic-bezier(.2, .8, .25, 1) both;
+  }
+
+  h1 .ch.a {
     color: var(--accent);
-    text-shadow: 0 0 32px color-mix(in srgb, var(--accent) 55%, transparent);
+    text-shadow: 0 0 28px color-mix(in srgb, var(--accent) 60%, transparent),
+                 0 0 90px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  @keyframes charIn {
+    from { opacity: 0; transform: translateY(.45em) scale(1.12); filter: blur(7px); }
+    to   { opacity: 1; transform: translateY(0) scale(1);        filter: blur(0);  }
   }
 
   .sub {
     max-width: 30em;
-    font-size: clamp(15px, 4vw, 19px);
-    line-height: 1.9;
-    opacity: .78;
+    font-size: clamp(16px, 4.2vw, 20px);
+    line-height: 2;
+    opacity: .8;
+    opacity: 0;
+    animation: fadeUp .9s ease .55s both;
   }
 
   .next {
-    margin-top: 14px;
-    padding: 14px 42px;
+    margin-top: 12px;
+    padding: 14px 44px;
+    font-family: var(--kai);
     font-size: 17px;
     font-weight: 700;
-    letter-spacing: .2em;
-    text-indent: .2em;
-    color: #1a0a12;
+    letter-spacing: .24em;
+    text-indent: .24em;
+    color: #180a12;
     background: var(--accent);
     border: none;
     border-radius: 999px;
     cursor: pointer;
-    box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 38%, transparent);
-    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 36%, transparent),
+                inset 0 1px 0 rgba(255, 255, 255, .35);
+    transition: transform .2s ease, box-shadow .2s ease, background 1.4s ease;
+    opacity: 0;
+    animation: fadeUp .9s ease .85s both;
   }
 
   .next:hover  { transform: translateY(-3px); }
   .next:active { transform: translateY(0) scale(.97); }
 
-  .hint {
-    font-size: 12px;
-    opacity: .4;
-    letter-spacing: .2em;
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   /* 进度点 */
@@ -128,26 +210,27 @@
     bottom: calc(24px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: 12px;
     z-index: 5;
   }
 
   #dots i {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: currentColor;
-    opacity: .25;
-    transition: opacity .4s, transform .4s, background .4s;
+    opacity: .22;
+    transition: opacity .4s, transform .4s, background .6s, box-shadow .6s;
   }
 
   #dots i.on {
     opacity: 1;
-    transform: scale(1.35);
+    transform: scale(1.4);
     background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
   }
 
-  /* 粒子（最后一层：心雨） */
+  /* 最后一层：心雨 */
   #rain {
     position: fixed;
     inset: 0;
@@ -163,7 +246,7 @@
   }
 
   @keyframes fall {
-    to { transform: translateY(115vh) rotate(540deg); opacity: .15; }
+    to { transform: translateY(115vh) rotate(540deg); opacity: .12; }
   }
 
   /* 署名小字 */
@@ -172,19 +255,33 @@
     right: 14px;
     bottom: calc(8px + env(safe-area-inset-bottom));
     font-size: 11px;
-    letter-spacing: .14em;
-    opacity: .38;
+    letter-spacing: .16em;
+    opacity: .4;
     z-index: 6;
     user-select: none;
+  }
+
+  /* 胶片噪点，去掉渐变的塑料感 */
+  #noise {
+    position: fixed;
+    inset: 0;
+    z-index: 7;
+    pointer-events: none;
+    opacity: .05;
+    mix-blend-mode: overlay;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 </style>
 </head>
 <body>
 
-<main id="stage"></main>
+<main id="stage">
+  <div id="vignette"></div>
+</main>
 
 <nav id="dots" aria-label="层级进度"></nav>
 <div id="rain"></div>
+<div id="noise"></div>
 <footer class="credit">作者正在坠机</footer>
 
 <script>
@@ -192,40 +289,41 @@
   "use strict";
 
   // ── 层层递进：遇见 → 心动 → 想念 → 靠近 → 爱上 → 我爱你 ──
+  // aFrom/aTo：标题里染强调色的字区间
   var LAYERS = [
     {
-      bg: "#0b1026", accent: "#8fb4ff", emoji: "✨",
-      title: "我<em>遇见</em>了你",
+      bg: "#0b1026", accent: "#8fb4ff", emoji: "✨", wm: "遇见",
+      title: "我遇见了你", aFrom: 1, aTo: 2,
       sub: "人海茫茫，只是多看了你一眼。<br>故事，从这里开始。",
       btn: "往下走 ↓"
     },
     {
-      bg: "#1a1230", accent: "#c79bff", emoji: "💗",
-      title: "我<em>心动</em>了",
+      bg: "#1a1230", accent: "#c79bff", emoji: "💗", wm: "心动",
+      title: "我心动了", aFrom: 1, aTo: 2,
       sub: "心跳快了半拍，嘴上还很平静。<br>骗得过所有人，骗不过自己。",
       btn: "继续 ↓"
     },
     {
-      bg: "#3a1430", accent: "#ff8fb8", emoji: "🌙",
-      title: "我<em>想</em>你了",
+      bg: "#3a1430", accent: "#ff8fb8", emoji: "🌙", wm: "想念",
+      title: "我想你了", aFrom: 1, aTo: 1,
       sub: "白天想，夜里想，<br>连做梦都在绕路去找你。",
       btn: "更进一步 ↓"
     },
     {
-      bg: "#4a1024", accent: "#ff6b8f", emoji: "🫶",
-      title: "我<em>靠近</em>了",
+      bg: "#4a1024", accent: "#ff6b8f", emoji: "🫶", wm: "靠近",
+      title: "我靠近了", aFrom: 1, aTo: 2,
       sub: "鼓起所有勇气，一步一步走向你。<br>每一步，都算数。",
       btn: "别停 ↓"
     },
     {
-      bg: "#5a0e1e", accent: "#ff5c72", emoji: "💘",
-      title: "我<em>爱上</em>你了",
+      bg: "#5a0e1e", accent: "#ff5c72", emoji: "💘", wm: "爱上",
+      title: "我爱上你了", aFrom: 1, aTo: 3,
       sub: "藏不住了。<br>眼睛先说的，嘴只是补了个签名。",
       btn: "抵达终点 ↓"
     },
     {
-      bg: "#610f1c", accent: "#ff4d5e", emoji: "❤️‍🔥",
-      title: "我<em>爱你</em>",
+      bg: "#610f1c", accent: "#ff4d5e", emoji: "❤️‍🔥", wm: "爱",
+      title: "我爱你", aFrom: 0, aTo: 2,
       sub: "遇见、心动、想念、靠近、爱上——<br>层层递进，最后只剩三个字：我爱你。",
       btn: "再说一遍 ↺",
       final: true
@@ -238,13 +336,44 @@
   var idx   = -1;
   var layers = [];
 
-  LAYERS.forEach(function (cfg, i) {
+  /* ── 背景：光斑 + 星尘（只建一次，颜色随层过渡）── */
+  [
+    { x: 6,  y: 12, s: 52, d: 0 },
+    { x: 72, y: 4,  s: 40, d: -6 },
+    { x: 60, y: 62, s: 58, d: -11 },
+    { x: 12, y: 66, s: 44, d: -3 },
+    { x: 84, y: 40, s: 34, d: -8 },
+    { x: 38, y: 22, s: 30, d: -14 }
+  ].forEach(function (b) {
+    var el = document.createElement("div");
+    el.className = "bokeh";
+    el.style.cssText =
+      "left:" + b.x + "vw;top:" + b.y + "vh;width:" + b.s + "vmin;height:" + b.s +
+      "vmin;animation-delay:" + b.d + "s;animation-duration:" + (18 + b.s % 9) + "s;";
+    stage.insertBefore(el, document.getElementById("vignette"));
+  });
+
+  for (var i = 0; i < 70; i++) {
+    var s = document.createElement("i");
+    s.className = "star" + (Math.random() < 0.22 ? " gold" : "");
+    var size = (1 + Math.random() * 1.8).toFixed(1);
+    s.style.cssText =
+      "left:" + (Math.random() * 100).toFixed(1) + "vw;top:" + (Math.random() * 100).toFixed(1) +
+      "vh;width:" + size + "px;height:" + size +
+      "px;animation-delay:" + (Math.random() * 4).toFixed(2) +
+      "s;animation-duration:" + (2.4 + Math.random() * 3).toFixed(2) + "s;";
+    stage.insertBefore(s, document.getElementById("vignette"));
+  }
+
+  /* ── 建层 ── */
+  LAYERS.forEach(function (cfg) {
     var sec = document.createElement("section");
     sec.className = "layer";
     sec.innerHTML =
-      '<p class="stage-no">第 ' + (i + 1) + " 层 · 共 " + LAYERS.length + " 层</p>" +
+      '<p class="stage-no"></p>' +
+      '<div class="wm" aria-hidden="true">' + cfg.wm + "</div>" +
       '<div class="emoji" aria-hidden="true">' + cfg.emoji + "</div>" +
-      "<h1>" + cfg.title + "</h1>" +
+      "<h1></h1>" +
       '<p class="sub">' + cfg.sub + "</p>" +
       '<button class="next">' + cfg.btn + "</button>";
     sec.querySelector(".next").addEventListener("click", goNext);
@@ -254,6 +383,20 @@
     var dot = document.createElement("i");
     dots.appendChild(dot);
   });
+
+  /* 标题逐字重建（重建即重放浮现动画） */
+  function buildTitle(sec, cfg) {
+    var h1 = sec.querySelector("h1");
+    var html = "";
+    for (var i = 0; i < cfg.title.length; i++) {
+      var cls = i >= cfg.aFrom && i <= cfg.aTo ? "ch a" : "ch";
+      html += '<span class="' + cls + '" style="animation-delay:' +
+              (0.12 + i * 0.09).toFixed(2) + 's">' + cfg.title[i] + "</span>";
+    }
+    h1.innerHTML = html;
+    sec.querySelector(".stage-no").textContent =
+      "第 " + (LAYERS.indexOf(cfg) + 1) + " 层 · 共 " + LAYERS.length + " 层";
+  }
 
   function applyTheme(cfg) {
     stage.style.background = cfg.bg;
@@ -274,6 +417,7 @@
     }
     idx = i;
     var cfg = LAYERS[idx];
+    buildTitle(layers[idx], cfg);
     layers[idx].classList.add("active");
     applyTheme(cfg);
     Array.prototype.forEach.call(dots.children, function (d, k) {
@@ -282,7 +426,7 @@
     if (cfg.final) startRain();
   }
 
-  // 最后一层：心雨
+  /* 心雨 */
   var raining = false;
   function startRain() {
     if (raining) return;
@@ -302,7 +446,7 @@
     }, 380);
   }
 
-  // 键盘 / 滑动
+  /* 键盘 / 滑动 */
   document.addEventListener("keydown", function (e) {
     if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); goNext(); }
   });
