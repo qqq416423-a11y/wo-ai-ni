@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>我爱你</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0b1026;
+    --ink: #f4f6ff;
+    --accent: #8fb4ff;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 层层递进：背景随层级由深夜蓝一路烧到滚烫红 */
+  #stage {
+    position: relative;
+    height: 100%;
+    transition: background 1.2s ease;
+  }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 32px 24px 96px;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(28px) scale(0.96);
+    transition: opacity .7s ease, transform .7s ease, visibility .7s;
+  }
+
+  .layer.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .layer.leaving {
+    opacity: 0;
+    transform: translateY(-28px) scale(1.04);
+  }
+
+  .stage-no {
+    font-size: 13px;
+    letter-spacing: .5em;
+    text-indent: .5em;
+    opacity: .55;
+  }
+
+  .emoji {
+    font-size: clamp(64px, 16vw, 120px);
+    line-height: 1;
+    filter: drop-shadow(0 12px 30px rgba(0,0,0,.45));
+    animation: bob 3.2s ease-in-out infinite;
+  }
+
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-14px) rotate(2deg); }
+  }
+
+  h1 {
+    font-size: clamp(42px, 10vw, 92px);
+    font-weight: 800;
+    letter-spacing: .08em;
+    line-height: 1.15;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+    text-shadow: 0 0 32px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  .sub {
+    max-width: 30em;
+    font-size: clamp(15px, 4vw, 19px);
+    line-height: 1.9;
+    opacity: .78;
+  }
+
+  .next {
+    margin-top: 14px;
+    padding: 14px 42px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-indent: .2em;
+    color: #1a0a12;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 38%, transparent);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .next:hover  { transform: translateY(-3px); }
+  .next:active { transform: translateY(0) scale(.97); }
+
+  .hint {
+    font-size: 12px;
+    opacity: .4;
+    letter-spacing: .2em;
+  }
+
+  /* 进度点 */
+  #dots {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 5;
+  }
+
+  #dots i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .25;
+    transition: opacity .4s, transform .4s, background .4s;
+  }
+
+  #dots i.on {
+    opacity: 1;
+    transform: scale(1.35);
+    background: var(--accent);
+  }
+
+  /* 粒子（最后一层：心雨） */
+  #rain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    overflow: hidden;
+  }
+
+  #rain span {
+    position: absolute;
+    top: -8vh;
+    animation: fall linear forwards;
+  }
+
+  @keyframes fall {
+    to { transform: translateY(115vh) rotate(540deg); opacity: .15; }
+  }
+
+  /* 署名小字 */
+  .credit {
+    position: fixed;
+    right: 14px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    font-size: 11px;
+    letter-spacing: .14em;
+    opacity: .38;
+    z-index: 6;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<main id="stage"></main>
+
+<nav id="dots" aria-label="层级进度"></nav>
+<div id="rain"></div>
+<footer class="credit">作者正在坠机</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── 层层递进：遇见 → 心动 → 想念 → 靠近 → 爱上 → 我爱你 ──
+  var LAYERS = [
+    {
+      bg: "#0b1026", accent: "#8fb4ff", emoji: "✨",
+      title: "我<em>遇见</em>了你",
+      sub: "人海茫茫，只是多看了你一眼。<br>故事，从这里开始。",
+      btn: "往下走 ↓"
+    },
+    {
+      bg: "#1a1230", accent: "#c79bff", emoji: "💗",
+      title: "我<em>心动</em>了",
+      sub: "心跳快了半拍，嘴上还很平静。<br>骗得过所有人，骗不过自己。",
+      btn: "继续 ↓"
+    },
+    {
+      bg: "#3a1430", accent: "#ff8fb8", emoji: "🌙",
+      title: "我<em>想</em>你了",
+      sub: "白天想，夜里想，<br>连做梦都在绕路去找你。",
+      btn: "更进一步 ↓"
+    },
+    {
+      bg: "#4a1024", accent: "#ff6b8f", emoji: "🫶",
+      title: "我<em>靠近</em>了",
+      sub: "鼓起所有勇气，一步一步走向你。<br>每一步，都算数。",
+      btn: "别停 ↓"
+    },
+    {
+      bg: "#5a0e1e", accent: "#ff5c72", emoji: "💘",
+      title: "我<em>爱上</em>你了",
+      sub: "藏不住了。<br>眼睛先说的，嘴只是补了个签名。",
+      btn: "抵达终点 ↓"
+    },
+    {
+      bg: "#610f1c", accent: "#ff4d5e", emoji: "❤️‍🔥",
+      title: "我<em>爱你</em>",
+      sub: "遇见、心动、想念、靠近、爱上——<br>层层递进，最后只剩三个字：我爱你。",
+      btn: "再说一遍 ↺",
+      final: true
+    }
+  ];
+
+  var stage = document.getElementById("stage");
+  var dots  = document.getElementById("dots");
+  var rain  = document.getElementById("rain");
+  var idx   = -1;
+  var layers = [];
+
+  LAYERS.forEach(function (cfg, i) {
+    var sec = document.createElement("section");
+    sec.className = "layer";
+    sec.innerHTML =
+      '<p class="stage-no">第 ' + (i + 1) + " 层 · 共 " + LAYERS.length + " 层</p>" +
+      '<div class="emoji" aria-hidden="true">' + cfg.emoji + "</div>" +
+      "<h1>" + cfg.title + "</h1>" +
+      '<p class="sub">' + cfg.sub + "</p>" +
+      '<button class="next">' + cfg.btn + "</button>";
+    sec.querySelector(".next").addEventListener("click", goNext);
+    stage.appendChild(sec);
+    layers.push(sec);
+
+    var dot = document.createElement("i");
+    dots.appendChild(dot);
+  });
+
+  function applyTheme(cfg) {
+    stage.style.background = cfg.bg;
+    document.documentElement.style.setProperty("--accent", cfg.accent);
+  }
+
+  function goNext() {
+    show((idx + 1) % LAYERS.length);
+  }
+
+  function show(i) {
+    if (i === idx) return;
+    var prev = layers[idx];
+    if (prev) {
+      prev.classList.remove("active");
+      prev.classList.add("leaving");
+      (function (p) { setTimeout(function () { p.classList.remove("leaving"); }, 700); })(prev);
+    }
+    idx = i;
+    var cfg = LAYERS[idx];
+    layers[idx].classList.add("active");
+    applyTheme(cfg);
+    Array.prototype.forEach.call(dots.children, function (d, k) {
+      d.classList.toggle("on", k === idx);
+    });
+    if (cfg.final) startRain();
+  }
+
+  // 最后一层：心雨
+  var raining = false;
+  function startRain() {
+    if (raining) return;
+    raining = true;
+    var hearts = ["❤️", "💖", "💘", "💗", "💕", "💞", "🌹", "✨", "🌸", "🩷"];
+    var timer = setInterval(function () {
+      if (idx !== LAYERS.length - 1) { clearInterval(timer); raining = false; return; }
+      for (var n = 0; n < 3; n++) {
+        var s = document.createElement("span");
+        s.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+        s.style.left = Math.random() * 100 + "vw";
+        s.style.animationDuration = 2.6 + Math.random() * 2.4 + "s";
+        s.style.fontSize = 18 + Math.random() * 22 + "px";
+        rain.appendChild(s);
+        setTimeout(function (el) { return function () { el.remove(); }; }(s), 5200);
+      }
+    }, 380);
+  }
+
+  // 键盘 / 滑动
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); goNext(); }
+  });
+
+  var touchY = null;
+  document.addEventListener("touchstart", function (e) { touchY = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (touchY === null) return;
+    if (touchY - e.changedTouches[0].clientY > 60) goNext();
+    touchY = null;
+  }, { passive: true });
+
+  show(0);
+})();
+</script>
+</body>
+</html>
